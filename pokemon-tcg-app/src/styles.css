@@ -1,0 +1,15 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* Qualche stile base tuo */
+body {
+  background-color: #f5f5f5;
+}
+
+.card-img-top {
+  object-fit: cover;
+  height: 220px;
+}
+
+.navbar-brand {
+  font-weight: 700;
+}

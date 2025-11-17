@@ -1,0 +1,28 @@
+<h1 class="mb-3">Carte preferite</h1>
+
+<div *ngIf="!favorites.length" class="alert alert-info">
+  Non hai ancora aggiunto nessuna carta ai preferiti.
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-3" *ngIf="favorites.length">
+  <div class="col" *ngFor="let card of favorites">
+    <div class="card h-100 shadow-sm">
+      <img [src]="card.image + '/high.webp'" class="card-img-top" [alt]="card.name" />
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">{{ card.name }}</h5>
+        <p class="card-text mb-1">
+          <strong>Set:</strong> {{ card.set?.name || card.set?.id }}
+        </p>
+
+        <div class="mt-auto d-flex justify-content-between">
+          <a [routerLink]="['/card', card.id]" class="btn btn-sm btn-primary">
+            Dettagli
+          </a>
+          <button class="btn btn-sm btn-outline-danger" (click)="remove(card)">
+            Rimuovi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,117 @@
+<div *ngIf="loading" class="text-center">
+  <div class="spinner-border" role="status"></div>
+  <p class="mt-2">Caricamento carta...</p>
+</div>
+
+<div *ngIf="error" class="alert alert-danger">
+  {{ error }}
+</div>
+
+<div *ngIf="card && !loading" class="row">
+  <div class="col-md-4 mb-3">
+    <div class="card shadow-sm">
+      <img [src]="card.image + '/high.webp'" class="card-img-top" [alt]="card.name" />
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <h2>{{ card.name }}</h2>
+    <p class="text-muted mb-1">
+      <strong>Set:</strong> {{ card.set?.name || card.set?.id }}
+    </p>
+    <p class="mb-1" *ngIf="card.types?.length">
+      <strong>Tipo:</strong> {{ card.types?.join(', ') }}
+    </p>
+    <p class="mb-1" *ngIf="card.rarity">
+      <strong>Rarità:</strong> {{ card.rarity }}
+    </p>
+    <p class="mb-1" *ngIf="card.hp">
+      <strong>HP:</strong> {{ card.hp }}
+    </p>
+    <p class="mb-3" *ngIf="card.description">
+      {{ card.description }}
+    </p>
+
+    <div class="mb-3">
+      <button
+        class="btn me-2"
+        [ngClass]="isFav ? 'btn-warning' : 'btn-outline-warning'"
+        (click)="toggleFavorite()"
+      >
+        {{ isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti' }}
+      </button>
+
+      <button class="btn btn-secondary" (click)="goBack()">
+        Torna indietro
+      </button>
+    </div>
+
+    <!-- Attacchi -->
+    <div *ngIf="card.attacks?.length" class="mb-3">
+      <h4>Attacchi</h4>
+      <ul class="list-group">
+        <li *ngFor="let atk of card.attacks" class="list-group-item">
+          <strong>{{ atk.name }}</strong>
+          <span *ngIf="atk.damage"> – {{ atk.damage }}</span>
+          <div *ngIf="atk.effect" class="small text-muted">
+            {{ atk.effect }}
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Debolezze -->
+    <div *ngIf="card.weaknesses?.length" class="mb-3">
+      <h4>Debolezze</h4>
+      <ul>
+        <li *ngFor="let w of card.weaknesses">
+          {{ w.type }} ({{ w.value }})
+        </li>
+      </ul>
+    </div>
+
+    <!-- Sezione prezzi / Cardmarket -->
+    <div class="card mt-3">
+      <div class="card-body">
+        <h4>Prezzi e Cardmarket</h4>
+
+        <div *ngIf="card.pricing?.cardmarket as cm; else noPrice">
+          <p class="mb-1">
+            <strong>Valuta:</strong> {{ cm.unit }}
+          </p>
+          <p class="mb-1" *ngIf="cm.low">
+            <strong>Prezzo minimo:</strong> {{ cm.low | number:'1.2-2' }}
+          </p>
+          <p class="mb-1" *ngIf="cm.avg">
+            <strong>Prezzo medio:</strong> {{ cm.avg | number:'1.2-2' }}
+          </p>
+          <p class="mb-1" *ngIf="cm.trend">
+            <strong>Prezzo trend:</strong> {{ cm.trend | number:'1.2-2' }}
+          </p>
+          <p class="mb-1" *ngIf="cm.avg7">
+            <strong>Media 7 giorni:</strong> {{ cm.avg7 | number:'1.2-2' }}
+          </p>
+          <p class="mb-3" *ngIf="cm.avg30">
+            <strong>Media 30 giorni:</strong> {{ cm.avg30 | number:'1.2-2' }}
+          </p>
+        </div>
+
+        <ng-template #noPrice>
+          <p class="text-muted mb-2">
+            Nessun dato di prezzo disponibile per questa carta.
+          </p>
+        </ng-template>
+
+        <a
+          *ngIf="cardmarketUrl"
+          class="btn btn-success"
+          [href]="cardmarketUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Apri su Cardmarket
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
