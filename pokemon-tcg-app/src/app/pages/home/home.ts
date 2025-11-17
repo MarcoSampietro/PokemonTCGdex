@@ -9,14 +9,15 @@ import { FavoritesService } from '../../services/favorites';
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
-  templateUrl:'./home.html'
+  templateUrl: './home.html'
 })
 export class HomeComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  allCards: TcgCard[] = [];
-  filteredCards: TcgCard[] = [];
+  allCards: TcgCard[] = [];      // tutte le carte
+  filteredCards: TcgCard[] = []; // filtrate
+  paginatedCards: TcgCard[] = []; // carte da mostrare nella pagina corrente
 
   searchTerm = '';
   selectedType = '';
@@ -24,6 +25,11 @@ export class HomeComponent implements OnInit {
 
   types: string[] = [];
   rarities: string[] = [];
+
+  // 👉 PAGINAZIONE
+  pageSize = 24;      // 6 carte per pagina
+  currentPage = 1;   // pagina corrente
+  totalPages = 1;    // calcolato dinamicamente
 
   constructor(
     private cardService: CardService,
@@ -38,7 +44,7 @@ export class HomeComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.cardService.getCards(60).subscribe({
+    this.cardService.getCards().subscribe({
       next: cards => {
         this.allCards = cards;
         this.buildFilters();
@@ -68,31 +74,49 @@ export class HomeComponent implements OnInit {
   applyFilters(): void {
     this.filteredCards = this.allCards.filter(card => {
       const matchName = card.name.toLowerCase().includes(this.searchTerm.toLowerCase());
-      const matchType = this.selectedType
-        ? card.types?.includes(this.selectedType)
-        : true;
-      const matchRarity = this.selectedRarity
-        ? card.rarity === this.selectedRarity
-        : true;
+      const matchType = this.selectedType ? card.types?.includes(this.selectedType) : true;
+      const matchRarity = this.selectedRarity ? card.rarity === this.selectedRarity : true;
 
       return matchName && matchType && matchRarity;
     });
+
+    // 🔁 Reset pagina quando cambia filtro
+    this.currentPage = 1;
+    this.updatePagination();
   }
 
-  onSearchChange(): void {
-    this.applyFilters();
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredCards.length / this.pageSize);
+
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+
+    this.paginatedCards = this.filteredCards.slice(start, end);
   }
 
-  onFilterChange(): void {
-    this.applyFilters();
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.updatePagination();
+    }
   }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.updatePagination();
+    }
+  }
+
+  onSearchChange(): void { this.applyFilters(); }
+  onFilterChange(): void { this.applyFilters(); }
 
   isFavorite(card: TcgCard): boolean {
     return this.favoritesService.isFavorite(card.id);
   }
 
   toggleFavorite(card: TcgCard, event: MouseEvent): void {
-    event.stopPropagation(); // per non triggherare il click sulla card
+    event.stopPropagation();
     this.favoritesService.toggleFavorite(card);
   }
 }

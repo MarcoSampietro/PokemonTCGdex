@@ -53,19 +53,23 @@
   {{ error }}
 </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-3" *ngIf="!loading && !error">
-  <div class="col" *ngFor="let card of filteredCards">
+<div class="row row-cols-2 row-cols-md-6 g-2" *ngIf="!loading && !error">
+  <div class="col" *ngFor="let card of paginatedCards">
     <div class="card h-100 shadow-sm">
+
       <img [src]="card.image + '/high.webp'" class="card-img-top" [alt]="card.name" />
 
       <div class="card-body d-flex flex-column">
         <h5 class="card-title">{{ card.name }}</h5>
+
         <p class="card-text mb-1">
-          <strong>Set:</strong> {{ card.set?.name || card.set?.id }}
+          <strong>Set:</strong> {{ card.set?.name ?? card.set?.id ?? 'N/D' }}
         </p>
+
         <p class="card-text mb-1" *ngIf="card.types?.length">
           <strong>Tipo:</strong> {{ card.types?.join(', ') }}
         </p>
+
         <p class="card-text mb-1" *ngIf="card.rarity">
           <strong>Rarità:</strong> {{ card.rarity }}
         </p>
@@ -79,13 +83,27 @@
             type="button"
             class="btn btn-sm"
             [ngClass]="isFavorite(card) ? 'btn-warning' : 'btn-outline-warning'"
-            (click)="toggleFavorite(card, $event)"
-          >
-            <i class="bi" [ngClass]="isFavorite(card) ? 'bi-star-fill' : 'bi-star'"></i>
-            Preferito
+            (click)="toggleFavorite(card, $event)">
+            ★
           </button>
         </div>
       </div>
+
     </div>
   </div>
+</div>
+
+<!-- PAGINAZIONE -->
+<div class="d-flex justify-content-center align-items-center mt-4" *ngIf="totalPages > 1">
+  <button class="btn btn-secondary me-3" (click)="prevPage()" [disabled]="currentPage === 1">
+    « Precedente
+  </button>
+
+  <span class="mx-2">
+    Pagina {{ currentPage }} / {{ totalPages }}
+  </span>
+
+  <button class="btn btn-secondary ms-3" (click)="nextPage()" [disabled]="currentPage === totalPages">
+    Successiva »
+  </button>
 </div>

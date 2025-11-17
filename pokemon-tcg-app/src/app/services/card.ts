@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
-const API_BASE = 'https://api.tcgdex.net/v2/en';
+const API_BASE = 'https://api.tcgdex.net/v2/it';
 
 export interface TcgSet {
   id: string;
@@ -38,36 +38,38 @@ export interface CardPricing {
   cardmarket?: CardmarketPricing;
 }
 
-export interface TcgCard extends TcgCardBrief {
+export interface TcgCard {
+  id: string;
+  name: string;
+
+  image: string;
+  image_high: string;
+
   category?: string;
   illustrator?: string;
   rarity?: string;
   hp?: number | string;
   types?: string[];
-  evolveFrom?: string;
-  description?: string;
-  stage?: string;
+
+  description?: string;   // <--- AGGIUNTO
+
   attacks?: {
     name: string;
+    damage?: string | number;
     effect?: string;
-    damage?: number | string;
-    cost?: string[];
   }[];
+
   weaknesses?: {
     type: string;
     value: string;
   }[];
-  retreat?: number;
-  regulationMark?: string;
-  legal?: {
-    standard?: boolean;
-    expanded?: boolean;
-  };
+
   set?: {
     id: string;
     name: string;
   };
-  pricing?: CardPricing;
+
+  pricing?: any;
 }
 
 @Injectable({
