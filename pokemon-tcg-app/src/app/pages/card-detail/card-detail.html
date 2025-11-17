@@ -16,7 +16,7 @@
 
   <div class="col-md-8">
     <h2>{{ card.name }}</h2>
-    <p class="text-muted mb-1">
+    <p class="mb-1">
       <strong>Set:</strong> {{ card.set?.name || card.set?.id }}
     </p>
     <p class="mb-1" *ngIf="card.types?.length">
@@ -27,9 +27,6 @@
     </p>
     <p class="mb-1" *ngIf="card.hp">
       <strong>HP:</strong> {{ card.hp }}
-    </p>
-    <p class="mb-3" *ngIf="card.description || card.attacks?.[0]?.effect">
-      <strong>Description:</strong> {{ card.description ?? card.attacks?.[0]?.effect }}
     </p>
 
     <div class="mb-3">
@@ -73,7 +70,7 @@
     <!-- Sezione prezzi / Cardmarket -->
     <div class="card mt-3">
       <div class="card-body">
-        <h4>Prezzi su Cardmarket</h4>
+        <h4>Prezzi e Cardmarket</h4>
 
         <div *ngIf="card.pricing?.cardmarket as cm; else noPrice">
           <p class="mb-1">

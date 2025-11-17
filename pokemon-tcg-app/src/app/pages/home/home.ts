@@ -12,31 +12,45 @@ import { FavoritesService } from '../../services/favorites';
   templateUrl: './home.html'
 })
 export class HomeComponent implements OnInit {
+
   loading = false;
   error: string | null = null;
+  fallbackImage = 'https://www.estronshop.it/app/public/files/prodotto/immagine-non-disponibile.png';
 
-  allCards: TcgCard[] = [];      // tutte le carte
-  filteredCards: TcgCard[] = []; // filtrate
-  paginatedCards: TcgCard[] = []; // carte da mostrare nella pagina corrente
+  allCards: TcgCard[] = [];
+  filteredCards: TcgCard[] = [];
+  paginatedCards: TcgCard[] = [];
 
   searchTerm = '';
   selectedType = '';
   selectedRarity = '';
+  selectedSet = '';
 
   types: string[] = [];
   rarities: string[] = [];
+  sets: string[] = [];
 
-  // 👉 PAGINAZIONE
-  pageSize = 24;      // 6 carte per pagina
-  currentPage = 1;   // pagina corrente
-  totalPages = 1;    // calcolato dinamicamente
+  pageSize = 24;
+  currentPage = 1;
+  totalPages = 1;
 
   constructor(
     private cardService: CardService,
     private favoritesService: FavoritesService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
+
+    // 1️⃣ PROVA A CARICARE DALLA CACHE
+    const cached = this.cardService.loadPersistentCache();
+    if (cached) {
+      this.allCards = cached;
+      this.buildFilters();
+      this.applyFilters();
+      return;
+    }
+
+    // 2️⃣ ALTRIMENTI CARICO DALL'API
     this.fetchCards();
   }
 
@@ -45,10 +59,20 @@ export class HomeComponent implements OnInit {
     this.error = null;
 
     this.cardService.getCards().subscribe({
-      next: cards => {
-        this.allCards = cards;
-        this.buildFilters();
-        this.applyFilters();
+      next: baseCards => {
+        this.allCards = baseCards;
+
+        // Carica i dettagli completi in background
+        baseCards.forEach(card => {
+          this.cardService.getCardDetails(card.id).subscribe(full => {
+
+            Object.assign(card, full);
+
+            this.buildFilters();
+            this.applyFilters();
+          });
+        });
+
         this.loading = false;
       },
       error: () => {
@@ -61,26 +85,29 @@ export class HomeComponent implements OnInit {
   buildFilters(): void {
     const typeSet = new Set<string>();
     const raritySet = new Set<string>();
+    const setSet = new Set<string>();
 
     this.allCards.forEach(card => {
       card.types?.forEach(t => typeSet.add(t));
       if (card.rarity) raritySet.add(card.rarity);
+      if (card.set?.name) setSet.add(card.set.name);
     });
 
     this.types = Array.from(typeSet).sort();
     this.rarities = Array.from(raritySet).sort();
+    this.sets = Array.from(setSet).sort();
   }
 
   applyFilters(): void {
     this.filteredCards = this.allCards.filter(card => {
-      const matchName = card.name.toLowerCase().includes(this.searchTerm.toLowerCase());
-      const matchType = this.selectedType ? card.types?.includes(this.selectedType) : true;
+      const matchName   = card.name.toLowerCase().includes(this.searchTerm.toLowerCase());
+      const matchType   = this.selectedType ? card.types?.includes(this.selectedType) : true;
       const matchRarity = this.selectedRarity ? card.rarity === this.selectedRarity : true;
+      const matchSet    = this.selectedSet ? card.set?.name === this.selectedSet : true;
 
-      return matchName && matchType && matchRarity;
+      return matchName && matchType && matchRarity && matchSet;
     });
 
-    // 🔁 Reset pagina quando cambia filtro
     this.currentPage = 1;
     this.updatePagination();
   }
@@ -108,8 +135,17 @@ export class HomeComponent implements OnInit {
     }
   }
 
-  onSearchChange(): void { this.applyFilters(); }
   onFilterChange(): void { this.applyFilters(); }
+  onSearchChange(): void { this.applyFilters(); }
+
+  getImageUrl(card: TcgCard) {
+    return card.image ? card.image + '/high.webp' : this.fallbackImage;
+  }
+
+  onImgError(event: any) {
+    if (event.target.src === this.fallbackImage) return;
+    event.target.src = this.fallbackImage;
+  }
 
   isFavorite(card: TcgCard): boolean {
     return this.favoritesService.isFavorite(card.id);

@@ -15,6 +15,24 @@ export class CardDetailComponent implements OnInit {
   loading = false;
   error: string | null = null;
   isFav = false;
+  fallbackImage = 'https://www.estronshop.it/app/public/files/prodotto/immagine-non-disponibile.png';
+
+  getImageUrl(card: TcgCard) {
+    // Se l’API non ha la base image → fallback
+    if (!card.image) {
+      return this.fallbackImage;
+    }
+
+    // Costruisce URL alta qualità
+    return card.image + '/high.webp';
+  }
+
+  onImgError(event: any) {
+    // Impedisce loop infinito
+    if (event.target.src === this.fallbackImage) return;
+
+    event.target.src = this.fallbackImage;
+  }
 
   constructor(
     private route: ActivatedRoute,

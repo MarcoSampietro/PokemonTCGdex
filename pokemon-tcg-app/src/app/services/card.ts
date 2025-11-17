@@ -1,31 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, of, tap } from 'rxjs';
 
 const API_BASE = 'https://api.tcgdex.net/v2/it';
 
-export interface TcgSet {
-  id: string;
-  name: string;
-  releaseDate?: string;
-  logo?: string;
-  symbol?: string;
-  cardCount?: {
-    official?: number;
-    total?: number;
-  };
-  cards?: TcgCardBrief[];
-}
-
-export interface TcgCardBrief {
-  id: string;
-  name: string;
-  image: string;
-  localId: string;
-}
-
+// =====================
+//     MODELS
+// =====================
 export interface CardmarketPricing {
-  unit: string;      // "EUR"
+  unit: string;
   avg?: number;
   low?: number;
   trend?: number;
@@ -34,24 +17,20 @@ export interface CardmarketPricing {
   avg30?: number;
 }
 
-export interface CardPricing {
-  cardmarket?: CardmarketPricing;
-}
-
 export interface TcgCard {
   id: string;
   name: string;
 
   image: string;
-  image_high: string;
+  image_high?: string;
 
-  category?: string;
-  illustrator?: string;
+  localId?: string;
+
   rarity?: string;
-  hp?: number | string;
   types?: string[];
+  hp?: number | string;
 
-  description?: string;   // <--- AGGIUNTO
+  description?: string;
 
   attacks?: {
     name: string;
@@ -77,26 +56,65 @@ export interface TcgCard {
 })
 export class CardService {
 
+  private cardDetailsCache = new Map<string, TcgCard>();
+  private persistentCacheKey = 'tcg_cards_cache_v1';
+
   constructor(private http: HttpClient) {}
 
-  /** Lista di set */
-  getSets(): Observable<TcgSet[]> {
-    return this.http.get<TcgSet[]>(`${API_BASE}/sets`);
+  // ====================
+  //  PERSISTENT CACHE
+  // ====================
+
+  savePersistentCache() {
+    const allCards = Array.from(this.cardDetailsCache.values());
+    localStorage.setItem(this.persistentCacheKey, JSON.stringify(allCards));
   }
 
-  /** Dettaglio set + carte incluse */
-  getSetById(id: string): Observable<TcgSet> {
-    return this.http.get<TcgSet>(`${API_BASE}/sets/${id}`);
+  loadPersistentCache(): TcgCard[] | null {
+    const data = localStorage.getItem(this.persistentCacheKey);
+    if (!data) return null;
+
+    try {
+      const cards: TcgCard[] = JSON.parse(data);
+      cards.forEach(c => this.cardDetailsCache.set(c.id, c));
+      return cards;
+    } catch {
+      return null;
+    }
   }
 
-  /** Lista carte base (usata per home) – prendo le prime N per non esagerare */
+  // ====================
+  //       API
+  // ====================
+
+  /** CARTE BASE */
   getCards(): Observable<TcgCard[]> {
-    return this.http.get<TcgCard[]>(`${API_BASE}/cards`);
+    return this.http.get<TcgCard[]>(`${API_BASE}/cards`).pipe(
+      map(cards =>
+        cards.map(c => ({
+          ...c,
+          image_high: c.image + '/high.webp'
+        }))
+      )
+    );
   }
 
+  /** DETTAGLIO COMPLETO (con cache) */
+  getCardDetails(id: string): Observable<TcgCard> {
+    if (this.cardDetailsCache.has(id)) {
+      return of(this.cardDetailsCache.get(id)!);
+    }
 
-  /** Singola carta */
+    return this.http.get<TcgCard>(`${API_BASE}/cards/${id}`).pipe(
+      tap(card => {
+        card.image_high = card.image + '/high.webp';
+        this.cardDetailsCache.set(id, card);
+        this.savePersistentCache();
+      })
+    );
+  }
+
   getCardById(id: string): Observable<TcgCard> {
-    return this.http.get<TcgCard>(`${API_BASE}/cards/${id}`);
+    return this.getCardDetails(id);
   }
 }

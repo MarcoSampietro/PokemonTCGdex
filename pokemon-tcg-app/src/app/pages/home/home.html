@@ -15,7 +15,7 @@
         />
       </div>
 
-      <div class="col-md-3">
+      <div class="col-md-2">
         <label class="form-label">Tipo</label>
         <select
           class="form-select"
@@ -40,6 +40,18 @@
           <option *ngFor="let r of rarities" [value]="r">{{ r }}</option>
         </select>
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Set</label>
+        <select
+          class="form-select"
+          [(ngModel)]="selectedSet"
+          name="selectedSet"
+          (change)="onFilterChange()"
+        >
+          <option value="">Tutti</option>
+          <option *ngFor="let s of sets" [value]="s">{{ s }}</option>
+        </select>
+      </div>
     </form>
   </div>
 </div>
@@ -56,8 +68,7 @@
 <div class="row row-cols-2 row-cols-md-6 g-2" *ngIf="!loading && !error">
   <div class="col" *ngFor="let card of paginatedCards">
     <div class="card h-100 shadow-sm">
-
-      <img [src]="card.image + '/high.webp'" class="card-img-top" [alt]="card.name" />
+    <img [src]="card.image + '/high.webp'" class="card-img-top" [alt]="card.name" />
 
       <div class="card-body d-flex flex-column">
         <h5 class="card-title">{{ card.name }}</h5>
