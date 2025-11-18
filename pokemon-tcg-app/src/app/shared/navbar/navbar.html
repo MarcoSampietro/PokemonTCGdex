@@ -1,5 +1,6 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark">
   <div class="container-fluid">
+
     <a class="navbar-brand" routerLink="/">Pokémon TCG Viewer</a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -7,14 +8,34 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNav">
+
+      <!-- 🔍 SEARCH BAR CENTRALE -->
+      <form class="d-flex mx-auto col-lg-6 col-md-8" (submit)="$event.preventDefault()">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Es. Pikachu"
+          [(ngModel)]="searchTerm"
+          name="navSearch"
+          (ngModelChange)="onSearchChange()"
+        />
+      </form>
+
+      <!-- MENU A DESTRA -->
       <ul class="navbar-nav ms-auto">
         <li class="nav-item">
-          <a class="nav-link" routerLink="/">Home</a>
+          <a class="nav-link" routerLink="/" routerLinkActive="active">
+            Home
+          </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" routerLink="/favorites">Preferiti</a>
+          <a class="nav-link" routerLink="/favorites" routerLinkActive="active">
+            Preferiti
+          </a>
         </li>
       </ul>
+
     </div>
+
   </div>
 </nav>

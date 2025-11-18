@@ -1,116 +1,114 @@
-<!-- FILTRI -->
-<div class="card mb-3">
-  <div class="card-body">
-    <form class="row g-3">
+<!DOCTYPE html>
+  <html lang="it">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon TCG Viewer</title>
+  </head>
+  <body>
+    <div class="container-fluid">
 
-      <!-- Nome -->
-      <div class="col-md-4">
-        <label class="form-label">Nome</label>
-        <input type="text"
-               class="form-control"
-               [(ngModel)]="searchTerm"
-               name="searchTerm"
-               (ngModelChange)="onSearchChange()"
-               placeholder="Es. Pikachu" />
+      <!-- FILTRI -->
+      <div class="filters-row">
+        <form class="row g-3">
+
+          <!-- Tipo -->
+          <div class="col-md-3 col-6">
+            <select class="form-select filter-select"
+                    [(ngModel)]="selectedType"
+                    name="selectedType"
+                    (change)="onFilterChange()">
+              <option value="">Tipo</option>
+              <option *ngFor="let t of types" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+
+          <!-- Rarità -->
+          <div class="col-md-3 col-6">
+            <select class="form-select filter-select"
+                    [(ngModel)]="selectedRarity"
+                    name="selectedRarity"
+                    (change)="onFilterChange()">
+              <option value="">Rarità</option>
+              <option *ngFor="let r of rarities" [value]="r">{{ r }}</option>
+            </select>
+          </div>
+
+          <!-- Set -->
+          <div class="col-md-3 col-6">
+            <select class="form-select filter-select"
+                    [(ngModel)]="selectedSet"
+                    name="selectedSet"
+                    (change)="onFilterChange()">
+              <option value="">Set</option>
+              <option *ngFor="let s of sets" [value]="s.id">{{ s.name }}</option>
+            </select>
+          </div>
+
+        </form>
       </div>
 
-      <!-- Tipo -->
-      <div class="col-md-2">
-        <label class="form-label">Tipo</label>
-        <select class="form-select"
-                [(ngModel)]="selectedType"
-                name="selectedType"
-                (change)="onFilterChange()">
-          <option value="">Tutti</option>
-          <option *ngFor="let t of types" [value]="t">{{ t }}</option>
-        </select>
+      <!-- LOADING -->
+      <div *ngIf="loading" class="text-center mt-5">
+        <div class="spinner-border"></div>
+        <p class="mt-3" style="color: var(--text-secondary);">Caricamento carte...</p>
       </div>
 
-      <!-- Rarità -->
-      <div class="col-md-2">
-        <label class="form-label">Rarità</label>
-        <select class="form-select"
-                [(ngModel)]="selectedRarity"
-                name="selectedRarity"
-                (change)="onFilterChange()">
-          <option value="">Tutte</option>
-          <option *ngFor="let r of rarities" [value]="r">{{ r }}</option>
-        </select>
-      </div>
+      <!-- ERROR -->
+      <div *ngIf="error" class="alert alert-danger mt-3">{{ error }}</div>
 
-      <!-- Set -->
-      <div class="col-md-3">
-        <label class="form-label">Set</label>
-        <select class="form-select"
-                [(ngModel)]="selectedSet"
-                name="selectedSet"
-                (change)="onFilterChange()">
+      <!-- CARDS -->
+      <div class="row row-cols-2 row-cols-md-5 row-cols-lg-6 g-3" *ngIf="!loading && !error">
 
-          <option value="">Tutti</option>
+        <div class="col" *ngFor="let card of cards">
+          <div class="card h-100">
 
-          <option *ngFor="let s of sets"
-                  [value]="s.id">
-            {{ s.name }}
-          </option>
+            <img class="card-img-top"
+                [src]="getImageUrl(card)"
+                (error)="onImgError($event)"
+                [alt]="card.name" />
 
-        </select>
-      </div>
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{{ card.name }}</h5>
+              <p><strong>Set:</strong> {{ card.set?.name }}</p>
+              <p *ngIf="card.types?.length"><strong>Tipo:</strong> {{ card.types?.join(', ') }}</p>
+              <p *ngIf="card.rarity"><strong>Rarità:</strong> {{ card.rarity }}</p>
 
-    </form>
-  </div>
-</div>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <a class="btn btn-sm btn-primary"
+                  [routerLink]="['/card', card.id]">Dettagli</a>
 
-<!-- LOADING -->
-<div *ngIf="loading" class="text-center mt-4">
-  <div class="spinner-border"></div>
-  <p>Caricamento carte...</p>
-</div>
+                <button class="btn btn-sm"
+                        [ngClass]="isFavorite(card) ? 'btn-warning' : 'btn-outline-warning'"
+                        (click)="toggleFavorite(card, $event)"
+                        title="{{ isFavorite(card) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti' }}">
+                  ★
+                </button>
+              </div>
 
-<!-- ERROR -->
-<div *ngIf="error" class="alert alert-danger">{{ error }}</div>
-
-<!-- CARDS -->
-<div class="row row-cols-2 row-cols-md-5 g-3" *ngIf="!loading && !error">
-
-  <div class="col" *ngFor="let card of cards">
-    <div class="card h-100 shadow-sm">
-
-      <img class="card-img-top"
-           [src]="getImageUrl(card)"
-           (error)="onImgError($event)"
-           [alt]="card.name" />
-
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">{{ card.name }}</h5>
-        <p><strong>Set:</strong> {{ card.set?.name }}</p>
-        <p><strong>Tipo:</strong> {{ card.types?.join(', ') }}</p>
-        <p><strong>Rarità:</strong> {{ card.rarity }}</p>
-
-        <div class="mt-auto d-flex justify-content-between">
-          <a class="btn btn-sm btn-primary"
-             [routerLink]="['/card', card.id]">Dettagli</a>
-
-          <button class="btn btn-sm"
-                  [ngClass]="isFavorite(card) ? 'btn-warning' : 'btn-outline-warning'"
-                  (click)="toggleFavorite(card, $event)">
-            ★
-          </button>
+            </div>
+          </div>
         </div>
 
       </div>
+
+      <!-- PAGINAZIONE -->
+      <div class="pagination-container" *ngIf="!loading && !error">
+        <button class="btn btn-secondary"
+                (click)="prevPage()"
+                [disabled]="currentPage === 1">
+          « Precedente
+        </button>
+
+        <span>Pagina {{ currentPage }}</span>
+
+        <button class="btn btn-secondary"
+                (click)="nextPage()">
+          Successiva »
+        </button>
+      </div>
+
     </div>
-  </div>
+  </body>
+</html>
 
-</div>
-
-<!-- PAGINAZIONE -->
-<div class="d-flex justify-content-center align-items-center mt-4">
-  <button class="btn btn-secondary me-3"
-          (click)="prevPage()"
-          [disabled]="currentPage === 1">« Precedente</button>
-
-  <span class="mx-2">Pagina {{ currentPage }}</span>
-
-  <button class="btn btn-secondary ms-3"
-          (click)="nextPage()">Successiva »</button>
-</div>

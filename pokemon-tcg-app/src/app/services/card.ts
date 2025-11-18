@@ -11,6 +11,8 @@ export interface TcgCard {
   id: string;
   name: string;
 
+  number?: string;
+  localId?: string;
   image: string;
   image_high?: string;
 

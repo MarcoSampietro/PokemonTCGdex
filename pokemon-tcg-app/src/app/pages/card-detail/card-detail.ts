@@ -76,9 +76,10 @@ export class CardDetailComponent implements OnInit {
 
   get cardmarketUrl(): string | null {
     if (!this.card) return null;
-    const query = encodeURIComponent(
-      `${this.card.name} ${this.card.set?.name ?? ''}`.trim()
-    );
+
+    // Usa SOLO il nome della carta
+    const query = encodeURIComponent(this.card.name.trim());
+
     return `https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=${query}`;
   }
 }
