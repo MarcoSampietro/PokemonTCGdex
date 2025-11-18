@@ -29,7 +29,7 @@ export class HomeComponent implements OnInit {
   sets: { id: string, name: string }[] = [];
 
   // PAGINAZIONE
-  pageSize = 24;
+  pageSize = 25;
   currentPage = 1;
 
   fallbackImage =

@@ -1,5 +1,3 @@
-<h1 class="mb-3">Carte Pokémon</h1>
-
 <!-- FILTRI -->
 <div class="card mb-3">
   <div class="card-body">
@@ -72,7 +70,7 @@
 <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
 
 <!-- CARDS -->
-<div class="row row-cols-2 row-cols-md-6 g-3" *ngIf="!loading && !error">
+<div class="row row-cols-2 row-cols-md-5 g-3" *ngIf="!loading && !error">
 
   <div class="col" *ngFor="let card of cards">
     <div class="card h-100 shadow-sm">

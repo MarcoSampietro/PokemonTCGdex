@@ -8,4 +8,6 @@ import { CommonModule } from '@angular/common';
   imports: [RouterLink, CommonModule],
   templateUrl: './navbar.html'
 })
-export class NavbarComponent {}
+export class NavbarComponent {
+  
+}
