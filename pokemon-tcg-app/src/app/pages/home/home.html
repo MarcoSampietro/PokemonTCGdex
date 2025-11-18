@@ -1,120 +1,118 @@
-<h1 class="mb-3">Cerca carte Pokémon</h1>
+<h1 class="mb-3">Carte Pokémon</h1>
 
+<!-- FILTRI -->
 <div class="card mb-3">
   <div class="card-body">
-    <form class="row g-2">
+    <form class="row g-3">
+
+      <!-- Nome -->
       <div class="col-md-4">
         <label class="form-label">Nome</label>
-        <input
-          type="text"
-          class="form-control"
-          [(ngModel)]="searchTerm"
-          name="searchTerm"
-          (ngModelChange)="onSearchChange()"
-          placeholder="Es. Charizard"
-        />
+        <input type="text"
+               class="form-control"
+               [(ngModel)]="searchTerm"
+               name="searchTerm"
+               (ngModelChange)="onSearchChange()"
+               placeholder="Es. Pikachu" />
       </div>
 
+      <!-- Tipo -->
       <div class="col-md-2">
         <label class="form-label">Tipo</label>
-        <select
-          class="form-select"
-          [(ngModel)]="selectedType"
-          name="selectedType"
-          (change)="onFilterChange()"
-        >
+        <select class="form-select"
+                [(ngModel)]="selectedType"
+                name="selectedType"
+                (change)="onFilterChange()">
           <option value="">Tutti</option>
           <option *ngFor="let t of types" [value]="t">{{ t }}</option>
         </select>
       </div>
 
-      <div class="col-md-3">
+      <!-- Rarità -->
+      <div class="col-md-2">
         <label class="form-label">Rarità</label>
-        <select
-          class="form-select"
-          [(ngModel)]="selectedRarity"
-          name="selectedRarity"
-          (change)="onFilterChange()"
-        >
+        <select class="form-select"
+                [(ngModel)]="selectedRarity"
+                name="selectedRarity"
+                (change)="onFilterChange()">
           <option value="">Tutte</option>
           <option *ngFor="let r of rarities" [value]="r">{{ r }}</option>
         </select>
       </div>
+
+      <!-- Set -->
       <div class="col-md-3">
         <label class="form-label">Set</label>
-        <select
-          class="form-select"
-          [(ngModel)]="selectedSet"
-          name="selectedSet"
-          (change)="onFilterChange()"
-        >
+        <select class="form-select"
+                [(ngModel)]="selectedSet"
+                name="selectedSet"
+                (change)="onFilterChange()">
+
           <option value="">Tutti</option>
-          <option *ngFor="let s of sets" [value]="s">{{ s }}</option>
+
+          <option *ngFor="let s of sets"
+                  [value]="s.id">
+            {{ s.name }}
+          </option>
+
         </select>
       </div>
+
     </form>
   </div>
 </div>
 
+<!-- LOADING -->
 <div *ngIf="loading" class="text-center mt-4">
-  <div class="spinner-border" role="status"></div>
-  <p class="mt-2">Caricamento carte...</p>
+  <div class="spinner-border"></div>
+  <p>Caricamento carte...</p>
 </div>
 
-<div *ngIf="error" class="alert alert-danger">
-  {{ error }}
-</div>
+<!-- ERROR -->
+<div *ngIf="error" class="alert alert-danger">{{ error }}</div>
 
-<div class="row row-cols-2 row-cols-md-6 g-2" *ngIf="!loading && !error">
-  <div class="col" *ngFor="let card of paginatedCards">
+<!-- CARDS -->
+<div class="row row-cols-2 row-cols-md-6 g-3" *ngIf="!loading && !error">
+
+  <div class="col" *ngFor="let card of cards">
     <div class="card h-100 shadow-sm">
-    <img [src]="card.image + '/high.webp'" class="card-img-top" [alt]="card.name" />
+
+      <img class="card-img-top"
+           [src]="getImageUrl(card)"
+           (error)="onImgError($event)"
+           [alt]="card.name" />
 
       <div class="card-body d-flex flex-column">
         <h5 class="card-title">{{ card.name }}</h5>
+        <p><strong>Set:</strong> {{ card.set?.name }}</p>
+        <p><strong>Tipo:</strong> {{ card.types?.join(', ') }}</p>
+        <p><strong>Rarità:</strong> {{ card.rarity }}</p>
 
-        <p class="card-text mb-1">
-          <strong>Set:</strong> {{ card.set?.name ?? card.set?.id ?? 'N/D' }}
-        </p>
+        <div class="mt-auto d-flex justify-content-between">
+          <a class="btn btn-sm btn-primary"
+             [routerLink]="['/card', card.id]">Dettagli</a>
 
-        <p class="card-text mb-1" *ngIf="card.types?.length">
-          <strong>Tipo:</strong> {{ card.types?.join(', ') }}
-        </p>
-
-        <p class="card-text mb-1" *ngIf="card.rarity">
-          <strong>Rarità:</strong> {{ card.rarity }}
-        </p>
-
-        <div class="mt-auto d-flex justify-content-between align-items-center">
-          <a [routerLink]="['/card', card.id]" class="btn btn-sm btn-primary">
-            Dettagli
-          </a>
-
-          <button
-            type="button"
-            class="btn btn-sm"
-            [ngClass]="isFavorite(card) ? 'btn-warning' : 'btn-outline-warning'"
-            (click)="toggleFavorite(card, $event)">
+          <button class="btn btn-sm"
+                  [ngClass]="isFavorite(card) ? 'btn-warning' : 'btn-outline-warning'"
+                  (click)="toggleFavorite(card, $event)">
             ★
           </button>
         </div>
-      </div>
 
+      </div>
     </div>
   </div>
+
 </div>
 
 <!-- PAGINAZIONE -->
-<div class="d-flex justify-content-center align-items-center mt-4" *ngIf="totalPages > 1">
-  <button class="btn btn-secondary me-3" (click)="prevPage()" [disabled]="currentPage === 1">
-    « Precedente
-  </button>
+<div class="d-flex justify-content-center align-items-center mt-4">
+  <button class="btn btn-secondary me-3"
+          (click)="prevPage()"
+          [disabled]="currentPage === 1">« Precedente</button>
 
-  <span class="mx-2">
-    Pagina {{ currentPage }} / {{ totalPages }}
-  </span>
+  <span class="mx-2">Pagina {{ currentPage }}</span>
 
-  <button class="btn btn-secondary ms-3" (click)="nextPage()" [disabled]="currentPage === totalPages">
-    Successiva »
-  </button>
+  <button class="btn btn-secondary ms-3"
+          (click)="nextPage()">Successiva »</button>
 </div>

@@ -1,22 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, of, tap } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 const API_BASE = 'https://api.tcgdex.net/v2/it';
 
 // =====================
-//     MODELS
+//        MODELS
 // =====================
-export interface CardmarketPricing {
-  unit: string;
-  avg?: number;
-  low?: number;
-  trend?: number;
-  avg1?: number;
-  avg7?: number;
-  avg30?: number;
-}
-
 export interface TcgCard {
   id: string;
   name: string;
@@ -24,13 +14,15 @@ export interface TcgCard {
   image: string;
   image_high?: string;
 
-  localId?: string;
-
   rarity?: string;
   types?: string[];
-  hp?: number | string;
 
-  description?: string;
+  set?: {
+    id: string;
+    name: string;
+  };
+
+  hp?: number | string;
 
   attacks?: {
     name: string;
@@ -43,78 +35,93 @@ export interface TcgCard {
     value: string;
   }[];
 
-  set?: {
-    id: string;
-    name: string;
-  };
+  description?: string;
 
-  pricing?: any;
+  pricing?: {
+    cardmarket?: {
+      unit: string;
+      avg?: number;
+      low?: number;
+      trend?: number;
+      avg1?: number;
+      avg7?: number;
+      avg30?: number;
+    };
+  };
 }
 
+// =====================
+//        SERVICE
+// =====================
 @Injectable({
   providedIn: 'root'
 })
 export class CardService {
 
-  private cardDetailsCache = new Map<string, TcgCard>();
-  private persistentCacheKey = 'tcg_cards_cache_v1';
-
   constructor(private http: HttpClient) {}
 
-  // ====================
-  //  PERSISTENT CACHE
-  // ====================
-
-  savePersistentCache() {
-    const allCards = Array.from(this.cardDetailsCache.values());
-    localStorage.setItem(this.persistentCacheKey, JSON.stringify(allCards));
+  // ---------- FILTRI GLOBALI ----------
+  getAllTypes(): Observable<string[]> {
+    return this.http.get<string[]>(`${API_BASE}/types`);
   }
 
-  loadPersistentCache(): TcgCard[] | null {
-    const data = localStorage.getItem(this.persistentCacheKey);
-    if (!data) return null;
-
-    try {
-      const cards: TcgCard[] = JSON.parse(data);
-      cards.forEach(c => this.cardDetailsCache.set(c.id, c));
-      return cards;
-    } catch {
-      return null;
-    }
+  getAllRarities(): Observable<string[]> {
+    return this.http.get<string[]>(`${API_BASE}/rarities`);
   }
 
-  // ====================
-  //       API
-  // ====================
+  getAllSets(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/sets`);
+  }
 
-  /** CARTE BASE */
-  getCards(): Observable<TcgCard[]> {
-    return this.http.get<TcgCard[]>(`${API_BASE}/cards`).pipe(
-      map(cards =>
-        cards.map(c => ({
+  // ---------- PAGINAZIONE / RICERCA GLOBALE ----------
+  getCardsPage(
+    page: number,
+    itemsPerPage: number,
+    filters: { name?: string; type?: string; rarity?: string }
+  ): Observable<TcgCard[]> {
+
+    let url =
+      `${API_BASE}/cards?pagination:page=${page}&pagination:itemsPerPage=${itemsPerPage}`;
+
+    if (filters.name)
+      url += `&name=${encodeURIComponent(filters.name)}`;
+
+    if (filters.type)
+      url += `&types=${encodeURIComponent(filters.type)}`;
+
+    if (filters.rarity)
+      url += `&rarity=${encodeURIComponent(filters.rarity)}`;
+
+    return this.http.get<TcgCard[]>(url).pipe(
+      map((cards: TcgCard[]) =>
+        cards.map((c: TcgCard) => ({
           ...c,
-          image_high: c.image + '/high.webp'
+          image_high: c.image ? c.image + '/high.webp' : undefined
         }))
       )
     );
   }
 
-  /** DETTAGLIO COMPLETO (con cache) */
-  getCardDetails(id: string): Observable<TcgCard> {
-    if (this.cardDetailsCache.has(id)) {
-      return of(this.cardDetailsCache.get(id)!);
-    }
-
-    return this.http.get<TcgCard>(`${API_BASE}/cards/${id}`).pipe(
-      tap(card => {
-        card.image_high = card.image + '/high.webp';
-        this.cardDetailsCache.set(id, card);
-        this.savePersistentCache();
-      })
+  // ---------- CARTE DI UN SET (usando l'ID) ----------
+  getCardsBySetId(setId: string): Observable<TcgCard[]> {
+    return this.http.get<any>(`${API_BASE}/sets/${setId}`).pipe(
+      map((set: any) => set.cards ?? []),
+      map((cards: any[]) =>
+        cards.map((c: any) => ({
+          ...c,
+          image_high: c.image ? c.image + '/high.webp' : undefined
+        }))
+      )
     );
   }
 
+  // ---------- DETTAGLIO CARTA ----------
   getCardById(id: string): Observable<TcgCard> {
-    return this.getCardDetails(id);
+    return this.http.get<TcgCard>(`${API_BASE}/cards/${id}`).pipe(
+      map((c: TcgCard) => ({
+        ...c,
+        image_high: c.image ? c.image + '/high.webp' : undefined
+      }))
+    );
   }
 }

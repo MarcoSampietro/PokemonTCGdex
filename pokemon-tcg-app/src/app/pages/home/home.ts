@@ -15,12 +15,10 @@ export class HomeComponent implements OnInit {
 
   loading = false;
   error: string | null = null;
-  fallbackImage = 'https://www.estronshop.it/app/public/files/prodotto/immagine-non-disponibile.png';
 
-  allCards: TcgCard[] = [];
-  filteredCards: TcgCard[] = [];
-  paginatedCards: TcgCard[] = [];
+  cards: TcgCard[] = [];
 
+  // FILTRI
   searchTerm = '';
   selectedType = '';
   selectedRarity = '';
@@ -28,48 +26,107 @@ export class HomeComponent implements OnInit {
 
   types: string[] = [];
   rarities: string[] = [];
-  sets: string[] = [];
+  sets: { id: string, name: string }[] = [];
 
+  // PAGINAZIONE
   pageSize = 24;
   currentPage = 1;
-  totalPages = 1;
+
+  fallbackImage =
+    'https://www.estronshop.it/app/public/files/prodotto/immagine-non-disponibile.png';
 
   constructor(
     private cardService: CardService,
     private favoritesService: FavoritesService
-  ) { }
+  ) {}
 
   ngOnInit(): void {
-
-    // 1️⃣ PROVA A CARICARE DALLA CACHE
-    const cached = this.cardService.loadPersistentCache();
-    if (cached) {
-      this.allCards = cached;
-      this.buildFilters();
-      this.applyFilters();
-      return;
-    }
-
-    // 2️⃣ ALTRIMENTI CARICO DALL'API
-    this.fetchCards();
+    this.loadFilters();
+    this.loadPage(1);
   }
 
-  fetchCards(): void {
+  // -------------------------
+  // POPOLAMENTO FILTRI
+  // -------------------------
+  loadFilters(): void {
+    this.cardService.getAllTypes().subscribe(t => this.types = t.sort());
+    this.cardService.getAllRarities().subscribe(r => this.rarities = r.sort());
+
+    this.cardService.getAllSets().subscribe(s => {
+      this.sets = s
+        .map((set: any) => ({ id: set.id, name: set.name }))
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    });
+  }
+
+  // -------------------------
+  // LOAD PAGE
+  // -------------------------
+  loadPage(page: number): void {
     this.loading = true;
     this.error = null;
 
-    this.cardService.getCards().subscribe({
-      next: baseCards => {
-        this.allCards = baseCards;
+    // --------- CASO 1: FILTRO PER SET ---------
+    if (this.selectedSet) {
 
-        // Carica i dettagli completi in background
+      this.cardService.getCardsBySetId(this.selectedSet).subscribe({
+        next: (allCards: TcgCard[]) => {
+
+          let filtered = allCards;
+
+          if (this.searchTerm) {
+            const term = this.searchTerm.toLowerCase();
+            filtered = filtered.filter(c => c.name.toLowerCase().includes(term));
+          }
+
+          if (this.selectedType) {
+            filtered = filtered.filter(c => c.types?.includes(this.selectedType));
+          }
+
+          if (this.selectedRarity) {
+            filtered = filtered.filter(c => c.rarity === this.selectedRarity);
+          }
+
+          // PAGINAZIONE CLIENT
+          const start = (page - 1) * this.pageSize;
+          const end = start + this.pageSize;
+
+          this.cards = filtered.slice(start, end);
+          this.currentPage = page;
+
+          // DETTAGLI PROGRESSIVI
+          this.cards.forEach(card => {
+            this.cardService.getCardById(card.id).subscribe(full => {
+              Object.assign(card, full);
+            });
+          });
+
+          this.loading = false;
+        },
+        error: () => {
+          this.error = 'Errore nel caricamento delle carte del set.';
+          this.loading = false;
+        }
+      });
+
+      return;
+    }
+
+    // --------- CASO 2: RICERCA GLOBALE /cards ---------
+    const filters = {
+      name: this.searchTerm || undefined,
+      type: this.selectedType || undefined,
+      rarity: this.selectedRarity || undefined
+    };
+
+    this.cardService.getCardsPage(page, this.pageSize, filters).subscribe({
+      next: (baseCards: TcgCard[]) => {
+        this.cards = baseCards;
+        this.currentPage = page;
+
         baseCards.forEach(card => {
-          this.cardService.getCardDetails(card.id).subscribe(full => {
-
+          this.cardService.getCardById(card.id).subscribe(full => {
             Object.assign(card, full);
-
-            this.buildFilters();
-            this.applyFilters();
           });
         });
 
@@ -82,77 +139,38 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  buildFilters(): void {
-    const typeSet = new Set<string>();
-    const raritySet = new Set<string>();
-    const setSet = new Set<string>();
+  // -------------------------
+  // EVENTI FILTRI
+  // -------------------------
+  onSearchChange() { this.loadPage(1); }
+  onFilterChange() { this.loadPage(1); }
 
-    this.allCards.forEach(card => {
-      card.types?.forEach(t => typeSet.add(t));
-      if (card.rarity) raritySet.add(card.rarity);
-      if (card.set?.name) setSet.add(card.set.name);
-    });
+  // -------------------------
+  // PAGINAZIONE
+  // -------------------------
+  nextPage() { this.loadPage(this.currentPage + 1); }
+  prevPage() { if (this.currentPage > 1) this.loadPage(this.currentPage - 1); }
 
-    this.types = Array.from(typeSet).sort();
-    this.rarities = Array.from(raritySet).sort();
-    this.sets = Array.from(setSet).sort();
-  }
-
-  applyFilters(): void {
-    this.filteredCards = this.allCards.filter(card => {
-      const matchName   = card.name.toLowerCase().includes(this.searchTerm.toLowerCase());
-      const matchType   = this.selectedType ? card.types?.includes(this.selectedType) : true;
-      const matchRarity = this.selectedRarity ? card.rarity === this.selectedRarity : true;
-      const matchSet    = this.selectedSet ? card.set?.name === this.selectedSet : true;
-
-      return matchName && matchType && matchRarity && matchSet;
-    });
-
-    this.currentPage = 1;
-    this.updatePagination();
-  }
-
-  updatePagination(): void {
-    this.totalPages = Math.ceil(this.filteredCards.length / this.pageSize);
-
-    const start = (this.currentPage - 1) * this.pageSize;
-    const end = start + this.pageSize;
-
-    this.paginatedCards = this.filteredCards.slice(start, end);
-  }
-
-  nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-      this.updatePagination();
-    }
-  }
-
-  prevPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-      this.updatePagination();
-    }
-  }
-
-  onFilterChange(): void { this.applyFilters(); }
-  onSearchChange(): void { this.applyFilters(); }
-
+  // -------------------------
+  // IMMAGINI
+  // -------------------------
   getImageUrl(card: TcgCard) {
     return card.image ? card.image + '/high.webp' : this.fallbackImage;
   }
 
-  onImgError(event: any) {
-    if (event.target.src === this.fallbackImage) return;
-    event.target.src = this.fallbackImage;
+  onImgError(e: any) {
+    e.target.src = this.fallbackImage;
   }
 
-  isFavorite(card: TcgCard): boolean {
+  // -------------------------
+  // PREFERITI
+  // -------------------------
+  isFavorite(card: TcgCard) {
     return this.favoritesService.isFavorite(card.id);
   }
 
-  toggleFavorite(card: TcgCard, event: MouseEvent): void {
-    event.stopPropagation();
+  toggleFavorite(card: TcgCard, e: MouseEvent) {
+    e.stopPropagation();
     this.favoritesService.toggleFavorite(card);
   }
 }

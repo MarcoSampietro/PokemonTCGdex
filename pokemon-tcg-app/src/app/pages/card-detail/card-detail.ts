@@ -53,7 +53,7 @@ export class CardDetailComponent implements OnInit {
   fetchCard(id: string): void {
     this.loading = true;
     this.cardService.getCardById(id).subscribe({
-      next: card => {
+    next: (card: TcgCard) => {
         this.card = card;
         this.isFav = this.favoritesService.isFavorite(card.id);
         this.loading = false;
